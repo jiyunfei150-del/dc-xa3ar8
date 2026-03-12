@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文生流程图 · 页面布局画廊</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", -apple-system, sans-serif;
+  background: linear-gradient(135deg, #f0f4f8 0%, #eaf0f8 50%, #f0eaf8 100%);
+  min-height: 100vh;
+  padding: 48px 24px;
+  color: #2d3748;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+.header { text-align: center; margin-bottom: 44px; }
+.header-tag { font-size: 12px; font-weight: 600; letter-spacing: 2px; color: #7c8db5; text-transform: uppercase; margin-bottom: 10px; }
+.header h1 { font-size: 28px; font-weight: 700; color: #1a2740; margin-bottom: 8px; }
+.header p { font-size: 14px; color: #718096; }
+.header p strong { color: #2b6cb0; }
+.hint {
+  background: rgba(255,255,255,0.7); backdrop-filter: blur(8px);
+  border-radius: 12px; padding: 14px 24px; text-align: center;
+  font-size: 14px; color: #4a5568; margin-bottom: 36px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+.hint strong { color: #2b6cb0; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; }
+@media(max-width:700px) { .grid { grid-template-columns: 1fr; } }
+
+.layout-card {
+  background: rgba(255,255,255,0.8); backdrop-filter: blur(10px);
+  border-radius: 18px; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+  transition: transform 0.25s, box-shadow 0.25s;
+  position: relative;
+}
+.layout-card:hover { transform: translateY(-5px); box-shadow: 0 12px 36px rgba(0,0,0,0.13); }
+
+.badge {
+  position: absolute; top: 14px; left: 14px; z-index: 2;
+  background: rgba(43,108,176,0.85); backdrop-filter: blur(4px);
+  color: #fff; font-size: 12px; font-weight: 700;
+  border-radius: 8px; padding: 4px 12px;
+}
+.rec-tag {
+  position: absolute; top: 14px; right: 14px; z-index: 2;
+  background: rgba(39,103,73,0.85);
+  color: #fff; font-size: 11px; font-weight: 700;
+  border-radius: 6px; padding: 3px 10px;
+}
+
+.preview {
+  min-height: 200px; padding: 50px 16px 16px;
+  background: #f7fafc;
+  display: flex; align-items: flex-start; justify-content: center;
+}
+.card-info { padding: 14px 20px 18px; border-top: 1px solid rgba(0,0,0,0.06); }
+.card-info h3 { font-size: 15px; font-weight: 700; color: #1a2740; margin-bottom: 4px; }
+.card-info p { font-size: 12.5px; color: #718096; line-height: 1.6; }
+.card-info .tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 11px; font-weight: 600; border-radius: 5px; padding: 2px 8px; }
+.tag-b { background: #ebf8ff; color: #2b6cb0; border: 1px solid #90cdf4; }
+.tag-g { background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; }
+.tag-p { background: #faf5ff; color: #6b46c1; border: 1px solid #d6bcfa; }
+
+/* 通用小节点 */
+.n { border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600; text-align: center; white-space: nowrap; }
+.n-blue  { background: rgba(255,255,255,0.8); border: 2px solid #90cdf4; color: #2b6cb0; }
+.n-purple{ background: rgba(255,255,255,0.7); border: 2px solid #b794f4; color: #553c9a; }
+.n-green { background: rgba(240,255,244,0.9); border: 2px solid #9ae6b4; color: #276749; }
+.n-red   { background: rgba(255,245,245,0.9); border: 2px solid #fc8181; color: #c53030; }
+.n-yellow{ background: rgba(255,255,240,0.9); border: 2px solid #f6e05e; color: #975a16; }
+.arr { width: 2px; height: 16px; background: #a0aec0; margin: 0 auto; position: relative; }
+.arr::after { content:''; position:absolute; bottom:-1px; border-left:4px solid transparent; border-right:4px solid transparent; border-top:6px solid #a0aec0; left:50%; transform:translateX(-50%); }
+.arr-h { height: 2px; width: 16px; background: #a0aec0; flex-shrink:0; position:relative; }
+.arr-h::after { content:''; position:absolute; right:-1px; border-top:4px solid transparent; border-bottom:4px solid transparent; border-left:6px solid #a0aec0; top:50%; transform:translateY(-50%); }
+
+/* 说明小卡 */
+.detail-card {
+  background: rgba(255,255,255,0.75); border: 1px solid rgba(144,205,244,0.4);
+  border-radius: 7px; padding: 5px 8px; font-size: 10px; color: #4a5568;
+  line-height: 1.4;
+}
+.detail-card strong { display: block; color: #2b6cb0; font-size: 11px; margin-bottom: 2px; }
+
+/* ═══════════════════════════════════════
+   ① 流程图 + 详细说明（上下结构）
+═══════════════════════════════════════ */
+.l1 { display: flex; flex-direction: column; width: 100%; gap: 10px; }
+.l1-flow { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.l1-details { display: flex; gap: 6px; width: 100%; }
+.l1-details .detail-card { flex: 1; }
+
+/* ═══════════════════════════════════════
+   ② 节点内注释（节点含小字说明）
+═══════════════════════════════════════ */
+.n-annotated {
+  border-radius: 9px; padding: 7px 12px; text-align: center;
+  background: rgba(255,255,255,0.8); border: 2px solid #90cdf4;
+  min-width: 110px;
+}
+.n-annotated .title { font-size: 12px; font-weight: 700; color: #2b6cb0; margin-bottom: 3px; }
+.n-annotated .subtitle { font-size: 10px; color: #718096; line-height: 1.3; }
+.n-annotated.purple { border-color: #b794f4; }
+.n-annotated.purple .title { color: #553c9a; }
+.n-annotated.green { border-color: #9ae6b4; }
+.n-annotated.green .title { color: #276749; }
+
+/* ═══════════════════════════════════════
+   ③ 左右分栏
+═══════════════════════════════════════ */
+.l3 { display: flex; gap: 8px; width: 100%; align-items: flex-start; }
+.l3-flow { display: flex; flex-direction: column; align-items: center; gap: 0; width: 45%; flex-shrink: 0; }
+.l3-divider { width: 1px; background: linear-gradient(to bottom, transparent, #a0aec0, transparent); align-self: stretch; margin: 0 2px; }
+.l3-details { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.l3-detail-row { display: flex; align-items: center; gap: 5px; }
+.l3-dot { width: 6px; height: 6px; border-radius: 50%; background: #90cdf4; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════
+   ④ 步骤卡片
+═══════════════════════════════════════ */
+.step-card {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: rgba(255,255,255,0.75); border: 1px solid rgba(144,205,244,0.5);
+  border-radius: 9px; padding: 8px 10px; margin-bottom: 6px; width: 100%;
+}
+.step-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.step-body .step-title { font-size: 12px; font-weight: 700; color: #1a2740; }
+.step-body .step-desc { font-size: 10px; color: #718096; line-height: 1.4; margin-top: 2px; }
+.step-connector { width: 2px; height: 10px; background: #cbd5e0; margin: 0 auto 6px; margin-left: 13px; }
+
+/* ═══════════════════════════════════════
+   ⑤ 时间线 + 说明气泡
+═══════════════════════════════════════ */
+.tl-wrap { position: relative; width: 100%; padding-left: 20px; }
+.tl-line { position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, #90cdf4, #d6bcfa, #9ae6b4); }
+.tl-item { position: relative; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 10px; }
+.tl-dot-w { position: relative; flex-shrink: 0; width: 14px; display: flex; justify-content: center; }
+.tl-dot2 { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 2px #90cdf4; z-index: 1; }
+.tl-bubble { background: rgba(255,255,255,0.8); border: 1px solid rgba(144,205,244,0.5); border-radius: 8px; padding: 5px 9px; flex: 1; }
+.tl-bubble .tl-title { font-size: 11px; font-weight: 700; color: #2b6cb0; }
+.tl-bubble .tl-desc { font-size: 10px; color: #718096; margin-top: 2px; line-height: 1.3; }
+
+/* ═══════════════════════════════════════
+   ⑥ 纯流程图（极简）
+═══════════════════════════════════════ */
+.pure-flow { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.pure-n { border-radius: 8px; padding: 6px 18px; font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; }
+.pure-blue   { background: #dbeafe; border: 2px solid #93c5fd; color: #1d4ed8; }
+.pure-purple { background: #ede9fe; border: 2px solid #c4b5fd; color: #6d28d9; }
+.pure-green  { background: #d1fae5; border: 2px solid #6ee7b7; color: #065f46; }
+.pure-red    { background: #fee2e2; border: 2px solid #fca5a5; color: #991b1b; }
+.pure-diamond { width: 80px; height: 42px; background: #fef3c7; border: 2px solid #fcd34d; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; margin: 6px auto; }
+.pure-diamond span { transform: rotate(-45deg); font-size: 11px; font-weight: 700; color: #92400e; white-space: nowrap; }
+.pure-arr { width: 2px; height: 14px; background: #94a3b8; margin: 0 auto; position: relative; }
+.pure-arr::after { content:''; position:absolute; bottom:-1px; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid #94a3b8; left:50%; transform:translateX(-50%); }
+
+/* ═══════════════════════════════════════
+   ⑦ 泳道 + 说明面板
+═══════════════════════════════════════ */
+.l7 { display: flex; gap: 8px; width: 100%; }
+.l7-swim { flex: 1; }
+.l7-panel { width: 88px; flex-shrink: 0; display: flex; flex-direction: column; gap: 5px; }
+.swim-wrap { display: flex; gap: 4px; height: 100%; }
+.swim-lane { flex: 1; border-right: 1px dashed #cbd5e0; padding: 0 3px; }
+.swim-lane:last-child { border-right: none; }
+.swim-label2 { text-align: center; font-size: 10px; font-weight: 700; padding: 4px; border-radius: 5px; margin-bottom: 6px; }
+.swim-node { border-radius: 6px; padding: 5px 3px; font-size: 10px; font-weight: 600; text-align: center; margin-bottom: 5px; }
+.panel-card { background: rgba(43,108,176,0.07); border: 1px solid rgba(144,205,244,0.5); border-radius: 7px; padding: 5px 6px; }
+.panel-card .pc-title { font-size: 10px; font-weight: 700; color: #2b6cb0; margin-bottom: 2px; }
+.panel-card .pc-text { font-size: 9.5px; color: #718096; line-height: 1.3; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-tag">Text-to-Flowchart · Layout Gallery v2</div>
+    <h1>📐 页面布局画廊</h1>
+    <p>共 <strong>7 种布局</strong>，决定流程图和说明文字如何组合呈现</p>
+  </div>
+
+  <div class="hint">
+    📌 告诉小D：<strong>「用布局 ①」</strong> 或 <strong>「流程图加详细说明那种」</strong>，即可按此方式生成
+  </div>
+
+  <div class="grid">
+
+    <!-- ① 流程图 + 详细说明 -->
+    <div class="layout-card">
+      <div class="badge">① 流程图 + 详细说明</div>
+      <div class="rec-tag">⭐ 推荐</div>
+      <div class="preview">
+        <div class="l1" style="width:100%;">
+          <div class="l1-flow">
+            <div class="n n-blue">🚀 启动阶段</div>
+            <div class="arr"></div>
+            <div class="n n-purple">⚙️ 处理阶段</div>
+            <div class="arr"></div>
+            <div class="n n-green">✅ 完成交付</div>
+          </div>
+          <div style="height:1px;background:rgba(0,0,0,0.08);margin:4px 0;"></div>
+          <div class="l1-details">
+            <div class="detail-card"><strong>🚀 启动阶段</strong>初始化环境，验证配置</div>
+            <div class="detail-card"><strong>⚙️ 处理阶段</strong>核心逻辑，分级处理</div>
+            <div class="detail-card"><strong>✅ 完成</strong>输出结果，通知用户</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h3>流程图 + 详细说明</h3>
+        <p>上方流程图纵览全局，下方说明卡片逐步展开细节。信息层次清晰，读者先看懂流程再深入。</p>
+        <div class="tags">
+          <span class="tag tag-b">汇报展示</span>
+          <span class="tag tag-g">首选推荐</span>
+          <span class="tag tag-b">信息丰富</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 节点内注释 -->
+    <div class="layout-card">
+      <div class="badge">② 节点内注释</div>
+      <div class="preview">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+          <div class="n-annotated">
+            <div class="title">🔍 数据分级</div>
+            <div class="subtitle">建立 level 1/2/3 映射表</div>
+          </div>
+          <div class="arr"></div>
+          <div class="n-annotated purple">
+            <div class="title">🔐 权限校验</div>
+            <div class="subtitle">基于 IP 判断访问类型</div>
+          </div>
+          <div class="arr"></div>
+          <div class="n-annotated green">
+            <div class="title">✅ 数据交付</div>
+            <div class="subtitle">脱敏后安全输出</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h3>节点内注释</h3>
+        <p>每个流程节点内含标题和简短说明，不需要额外区域，信息密度高，适合流程步骤较少但每步都需解释的场景。</p>
+        <div class="tags">
+          <span class="tag tag-b">紧凑</span>
+          <span class="tag tag-b">高密度</span>
+          <span class="tag tag-p">步骤较少</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 左右分栏 -->
+    <div class="layout-card">
+      <div class="badge">③ 左右分栏</div>
+      <div class="preview">
+        <div class="l3" style="width:100%;">
+          <div class="l3-flow">
+            <div class="n n-blue" style="font-size:10px;padding:4px 8px;">请求到达</div>
+            <div class="arr"></div>
+            <div class="n n-purple" style="font-size:10px;padding:4px 8px;">IP 判断</div>
+            <div class="arr"></div>
+            <div class="n n-yellow" style="font-size:10px;padding:4px 8px;">账号分配</div>
+            <div class="arr"></div>
+            <div class="n n-green" style="font-size:10px;padding:4px 8px;">数据返回</div>
+          </div>
+          <div class="l3-divider"></div>
+          <div class="l3-details">
+            <div class="detail-card" style="font-size:9.5px;"><strong>请求到达</strong>经过财务 API 网关</div>
+            <div class="detail-card" style="font-size:9.5px;margin-top:4px;"><strong>IP 判断</strong>常规 or AI 访问</div>
+            <div class="detail-card" style="font-size:9.5px;margin-top:4px;"><strong>账号分配</strong>只读权限数据库账号</div>
+            <div class="detail-card" style="font-size:9.5px;margin-top:4px;"><strong>数据返回</strong>按 level 脱敏后输出</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h3>左右分栏</h3>
+        <p>左侧流程图，右侧对应说明，视线左右对照，适合宽屏或横向展示，逐行对应关系一目了然。</p>
+        <div class="tags">
+          <span class="tag tag-b">宽屏</span>
+          <span class="tag tag-b">对照阅读</span>
+          <span class="tag tag-p">横向展示</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ 步骤卡片 -->
+    <div class="layout-card">
+      <div class="badge">④ 步骤卡片</div>
+      <div class="preview" style="padding-top:44px;">
+        <div style="width:100%;">
+          <div class="step-card">
+            <div class="step-icon" style="background:#dbeafe;">🗺️</div>
+            <div class="step-body">
+              <div class="step-title">建立映射表</div>
+              <div class="step-desc">database_name / table_name / level / luan_shen_view</div>
+            </div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-card">
+            <div class="step-icon" style="background:#ede9fe;">🔌</div>
+            <div class="step-body">
+              <div class="step-title">AI 请求路由</div>
+              <div class="step-desc">IP 识别后走专用服务，分配只读账号</div>
+            </div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-card">
+            <div class="step-icon" style="background:#d1fae5;">✅</div>
+            <div class="step-body">
+              <div class="step-title">安全输出</div>
+              <div class="step-desc">按 level 脱敏，1 级禁止外流</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h3>步骤卡片</h3>
+        <p>每个步骤是一张独立卡片，图标+标题+说明，视觉感强，适合文档、教程、onboarding 场景。</p>
+        <div class="tags">
+          <span class="tag tag-b">教程风格</span>
+          <span class="tag tag-b">视觉感强</span>
+          <span class="tag tag-p">文档友好</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ 时间线 + 说明气泡 -->
+    <div class="layout-card">
+      <div class="badge">⑤ 时间线 + 说明气泡</div>
+      <div class="preview" style="padding-top:44px;">
+        <div class="tl-wrap" style="width:100%;">
+          <div class="tl-line"></div>
+          <div class="tl-item">
+            <div class="tl-dot-w"><div class="tl-dot2" style="background:#ebf8ff;box-shadow:0 0 0 2px #90cdf4;"></div></div>
+            <div class="tl-bubble">
+              <div class="tl-title">Phase 1 · 分级脱敏</div>
+              <div class="tl-desc">建立映射表，配置 level 1/2/3 规则</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot-w"><div class="tl-dot2" style="background:#faf5ff;box-shadow:0 0 0 2px #d6bcfa;"></div></div>
+            <div class="tl-bubble" style="border-color:rgba(214,188,250,0.5);">
+              <div class="tl-title" style="color:#553c9a;">Phase 2 · 请求路由</div>
+              <div class="tl-desc">AI 访问走专用服务通道</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot-w"><div class="tl-dot2" style="background:#f0fff4;box-shadow:0 0 0 2px #9ae6b4;"></div></div>
+            <div class="tl-bubble" style="border-color:rgba(154,230,180,0.5);">
+              <div class="tl-title" style="color:#276749;">Phase 3 · 安全交付</div>
+              <div class="tl-desc">脱敏验证通过后输出数据</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h3>时间线 + 说明气泡</h3>
+        <p>以时间线为主轴，每个里程碑旁挂说明气泡，适合项目推进、版本迭代、阶段性方案展示。</p>
+        <div class="tags">
+          <span class="tag tag-b">里程碑</span>
+          <span class="tag tag-b">阶段推进</span>
+          <span class="tag tag-p">项目文档</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ 纯流程图 -->
+    <div class="layout-card">
+      <div class="badge">⑥ 纯流程图</div>
+      <div class="preview">
+        <div class="pure-flow">
+          <div class="pure-n pure-blue">开始 / 触发</div>
+          <div class="pure-arr"></div>
+          <div class="pure-diamond"><span>判断</span></div>
+          <div class="pure-arr"></div>
+          <div style="display:flex;gap:16px;align-items:flex-start;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+              <div class="pure-n pure-green" style="font-size:11px;padding:5px 12px;">✓ 通过</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+              <div class="pure-n pure-red" style="font-size:11px;padding:5px 12px;">✗ 拒绝</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h3>纯流程图</h3>
+        <p>只有流程图，没有额外说明区域，极简清爽。适合内部技术讨论、已熟悉背景的团队、或作为其他文档的嵌入组件。</p>
+        <div class="tags">
+          <span class="tag tag-b">极简</span>
+          <span class="tag tag-b">技术用途</span>
+          <span class="tag tag-p">内部讨论</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑦ 泳道 + 说明面板 -->
+    <div class="layout-card">
+      <div class="badge">⑦ 泳道 + 说明面板</div>
+      <div class="preview" style="padding-top:44px;">
+        <div class="l7" style="width:100%;">
+          <div class="l7-swim">
+            <div class="swim-wrap">
+              <div class="swim-lane">
+                <div class="swim-label2" style="background:#ebf8ff;color:#2b6cb0;">用户/AI</div>
+                <div class="swim-node" style="background:#ebf8ff;border:1.5px solid #90cdf4;color:#2b6cb0;">发起请求</div>
+              </div>
+              <div class="swim-lane">
+                <div class="swim-label2" style="background:#faf5ff;color:#553c9a;">财务API</div>
+                <div class="swim-node" style="background:#faf5ff;border:1.5px solid #d6bcfa;color:#553c9a;">IP 判断</div>
+                <div class="swim-node" style="background:#faf5ff;border:1.5px solid #d6bcfa;color:#553c9a;margin-top:4px;">账号分配</div>
+              </div>
+              <div class="swim-lane">
+                <div class="swim-label2" style="background:#f0fff4;color:#276749;">数据库</div>
+                <div class="swim-node" style="background:#f0fff4;border:1.5px solid #9ae6b4;color:#276749;margin-top:28px;">只读查询</div>
+              </div>
+            </div>
+          </div>
+          <div style="width:1px;background:rgba(0,0,0,0.08);margin:0 4px;"></div>
+          <div class="l7-panel">
+            <div class="panel-card">
+              <div class="pc-title">👤 用户/AI</div>
+              <div class="pc-text">OpenClaw 走专用通道</div>
+            </div>
+            <div class="panel-card" style="background:rgba(107,70,193,0.06);border-color:rgba(214,188,250,0.5);">
+              <div class="pc-title" style="color:#553c9a;">🔌 财务API</div>
+              <div class="pc-text">路由判断 + 账号鉴权</div>
+            </div>
+            <div class="panel-card" style="background:rgba(39,103,73,0.06);border-color:rgba(154,230,180,0.5);">
+              <div class="pc-title" style="color:#276749;">🗄️ 数据库</div>
+              <div class="pc-text">只读 + 按级脱敏输出</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h3>泳道 + 说明面板</h3>
+        <p>多角色泳道展示职责划分，右侧说明面板概括每个角色的核心任务，最适合多系统协作流程。</p>
+        <div class="tags">
+          <span class="tag tag-b">多角色</span>
+          <span class="tag tag-b">职责划分</span>
+          <span class="tag tag-g">协作首选</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="text-align:center;margin-top:40px;font-size:12px;color:#a0aec0;">
+    文生流程图 · 页面布局画廊 v2 · Generated by 小D · DataClaw
+  </div>
+</div>
+</body>
+</html>
